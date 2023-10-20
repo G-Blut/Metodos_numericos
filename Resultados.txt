@@ -1,0 +1,7 @@
+Resultados de la Calculadora de Ecuaciones
+
+Ecuación: x**5-2*x**4-3*x**3+6*x**2+2*x-4
+Método utilizado: Bisección
+Precisión deseada: 
+Puntos de arranque: 
+Resultado: La solución es: 2.000060562123339 encontrada en 22 iteraciones, xa=1.9996208917425686, xb=2.000500232504109

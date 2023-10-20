@@ -1,13 +1,17 @@
 import tkinter as tk
+import os
 import numpy as np
 import sympy as sp
 import matplotlib.pyplot as plt
 import random
-
 from tkinter import ttk
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-#from reportlab.lib.pagesizes import letter
-#from reportlab.pdfgen import canvas
+
+# Definir el arreglo de métodos
+metodos = ["Tanteo", "Bisección", "Regla Falsa", "Secante", "Steffensen"]
+
 
 # Función para validar y ejecutar el método seleccionado
 def Validacion():
@@ -18,8 +22,10 @@ def Validacion():
         MetodoBiseccion()
     elif seleccion == 3:
         MetodoReglaFalsa()
-    elif seleccion == 4:  # Agregado el método de la secante
+    elif seleccion == 4:
         MetodoSecante()
+    elif seleccion == 5:
+        MetodoSteffensen()
     
 
 # Función para evaluar la ecuación
@@ -138,6 +144,24 @@ def MetodoSecante():
     mensaje_resultado.set(f"La solución es: {round(Xc, 3)} encontrada en {cont} iteraciones")
     Graficador(Xa, Xb, Xc)
 
+def MetodoSteffensen():
+    from random import randint
+    Xa = randint(0, 20)
+    precision = float(entrada_precision.get()) if entrada_precision.get() else 0.0001
+
+    print('Xa = ', Xa)
+    cont = 0
+    Xc = Xa
+    while True:
+        cont += 1
+        if abs(pol(Xc)) <= precision:
+            break
+        else:
+            Xc = Xa - ((pol(Xa) ** 2) / (pol(Xa + pol(Xa)) - pol(Xa)))
+            Xa = Xc
+
+    mensaje_resultado.set(f'La solución es: {Xa} encontrada en {cont} iteraciones')
+    Graficador(Xa,Xc)
 
 def MostrarAyuda():
     ventana_ayuda = tk.Toplevel(app)
@@ -158,6 +182,67 @@ def MostrarAyuda():
                            "\n¡Muchas gracias por utilizar este programa espero disfrute de la experiencia!", justify="left")
     
     texto_ayuda.pack(padx=20, pady=20)
+    
+
+# Función para guardar los resultados en un archivo PDF
+def GuardarResultadosp():
+    archivo_pdf = tk.filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
+    if archivo_pdf:
+        try:
+            pdf = canvas.Canvas(archivo_pdf, pagesize=letter)
+            pdf.drawString(100, 750, "Resultados de la Calculadora de Ecuaciones")
+            pdf.drawString(100, 730, "----------------------------------------------")
+
+            pdf.drawString(100, 710, "Ecuación ingresada:")
+            pdf.drawString(150, 710, entrada_ecuacion.get())
+
+            pdf.drawString(100, 690, "Método seleccionado:")
+            metodo = metodos[metodo_seleccionado.get() - 1]
+            pdf.drawString(230, 690, metodo)
+
+            pdf.drawString(100, 670, "Precisión deseada:")
+            pdf.drawString(230, 670, entrada_precision.get())
+
+            pdf.drawString(100, 650, "Puntos de arranque:")
+            pdf.drawString(230, 650, mensaje_puntos_arranque.get())
+
+            pdf.drawString(100, 630, "Resultado:")
+            pdf.drawString(230, 630, mensaje_resultado.get())
+
+            pdf.drawString(100, 610, "Gráfico:")
+
+            canvas = FigureCanvasTkAgg(fig)
+            canvas.draw()
+            canvas.get_tk_widget().pack_forget()
+            ruta_imagen = "temp_plot.png"  # Ruta de la imagen temporal
+
+            fig.savefig(ruta_imagen, format="png")
+            pdf.drawImage(ruta_imagen, 100, 330, width=400, height=240)  # Agregar la imagen
+
+            pdf.showPage()
+            pdf.save()
+
+            # Eliminar la imagen temporal
+            os.remove(ruta_imagen)
+
+        except Exception as e:
+            print(f"Error al guardar el PDF: {str(e)}")
+            
+            
+def GuardarResultados():
+    ecuacion = entrada_ecuacion.get()
+    metodo = metodo_seleccionado.get()
+    precision = entrada_precision.get()
+    puntos_arranque = mensaje_puntos_arranque.get()
+    resultado = mensaje_resultado.get()
+
+    with open("Resultados.txt", "w") as file:
+        file.write("Resultados de la Calculadora de Ecuaciones\n\n")
+        file.write(f"Ecuación: {ecuacion}\n")
+        file.write(f"Método utilizado: {metodos[metodo - 1]}\n")
+        file.write(f"Precisión deseada: {precision}\n")
+        file.write(f"Puntos de arranque: {puntos_arranque}\n")
+        file.write(f"Resultado: {resultado}\n")
 
 # Crear la ventana principal
 app = tk.Tk()
@@ -186,26 +271,35 @@ ttk.Radiobutton(MarcoIngresoDatos, text="Tanteo", variable=metodo_seleccionado, 
 ttk.Radiobutton(MarcoIngresoDatos, text="Bisección", variable=metodo_seleccionado, value=2).grid(row=1, column=2, padx=10, pady=5)
 ttk.Radiobutton(MarcoIngresoDatos, text="Regla Falsa", variable=metodo_seleccionado, value=3).grid(row=1, column=3, padx=10, pady=5)
 ttk.Radiobutton(MarcoIngresoDatos, text="Secante",  variable=metodo_seleccionado, value=4).grid(row=1, column=4, padx=10, pady=5)
+ttk.Radiobutton(MarcoIngresoDatos, text="Steffensen", variable=metodo_seleccionado, value=5).grid(row=1, column=5, padx=10, pady=5)
 
-# Crear entrada para la precisión deseada
+
+#Crear entrada para la precisión deseada
 ttk.Label(MarcoIngresoDatos, text="Precisión deseada: (0.01, 0.001,...)").grid(row=3, column=0, padx=10, pady=5)
 entrada_precision = ttk.Entry(MarcoIngresoDatos, width=10)
 entrada_precision.grid(row=3, column=1, padx=10, pady=5)
 
-# Botón para calcular
+#Botón para calcular
 ttk.Button(MarcoIngresoDatos, text="Calcular", command=Validacion).grid(row=4, column=1, padx=10, pady=10)
 
-# Botón para la ayuda
+#Botón para la ayuda
 ttk.Button(MarcoIngresoDatos, text="Ayuda", command=MostrarAyuda).grid(row=4, column=2, padx=10, pady=10)
 
-# Crear marco para mostrar resultados
+#Botón para guardar los resultados en un archivo PDF
+ttk.Button(MarcoSalidaDatos, text="Guardar PDF", command=GuardarResultadosp).pack()
+
+# Agregar un botón para guardar los resultados en un archivo de texto
+ttk.Button(MarcoIngresoDatos, text="Guardar Resultados", command=GuardarResultados).grid(row=4, column=3, padx=10, pady=10)
+
+
+#Crear marco para mostrar resultados
 mensaje_puntos_arranque = tk.StringVar()
 mensaje_resultado = tk.StringVar()
 
 ttk.Label(MarcoSalidaDatos, textvariable=mensaje_puntos_arranque).pack(padx=10, pady=5)
 ttk.Label(MarcoSalidaDatos, textvariable=mensaje_resultado).pack(padx=10, pady=5)
 
-# Crear el gráfico
+#Crear el gráfico
 fig, ax = plt.subplots(figsize=(6, 4))
 canvas = FigureCanvasTkAgg(fig, master=MarcoSalidaDatos)
 canvas.get_tk_widget().pack(padx=10, pady=10)
@@ -231,8 +325,7 @@ def Graficador(Xa, Xb, Xc):
 
         canvas.draw()
     else:
-        print("Valores no validos para Xa, Xb o Xc.")
-
+        print("Valores no validos para Xa, Xb o Xc.")    
 
 # Ejecutar la aplicación
 app.mainloop()
